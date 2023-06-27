@@ -1,61 +1,189 @@
-import * as React from 'react';
-import Head from '../component/head';
-import Container from '@mui/material/Container';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
-import Grid from '@mui/material/Grid';
-import Typography from '@mui/material/Typography';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import GoogleScholarCard from "../component/googleScholarCard";
+import ScopusCard from "../component/scopusCard";
+import { Container, Typography, TextField, IconButton } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import "../style/styles.css";
+import "../style/loader.css";
 
-const baseURL = 'https://sarankaewchuay.github.io/google.github.io/googlescholar.json';
+const host = "https://scrap-backend.vercel.app/";
+// const host = "http://localhost:8080/";
 
-export default function Home() {
-  const [posts, setPosts] = React.useState([]);
+const baseURL = host + "authors";
 
-  React.useEffect(() => {
-    axios.get(baseURL)
-      .then(response => {
-        setPosts(response.data);
-      })
-      .catch(error => {
-        console.error(error);
-      });
-  }, []);
-
+function Home() {
+  const [posts, setPosts] = useState([]);
+  const [postsLength, setPostsLength] = useState(0);
+  const [img, setImg] = useState();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedOption, setSelectedOption] = useState("scholar");
+  
+  const fetchData = async (url) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(url);
+      setPosts(response.data);
+      setPostsLength(response.data.length);
+      setIsLoading(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  
+  const handleChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+  
+  useEffect(() => {
+    let url;
+    let img;
+  
+    if (selectedOption === "scopus") {
+      url = searchQuery === "" ? `${baseURL}Scoupus/` : `${baseURL}Scoupus/author/${searchQuery}`;
+      img = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Scopus_logo.svg/2560px-Scopus_logo.svg.png";
+    } else {
+      url = searchQuery === "" ? baseURL : `${baseURL}/author/${searchQuery}`;
+      img = "https://upload.wikimedia.org/wikipedia/commons/2/28/Google_Scholar_logo.png?20190206225436";
+    }
+  
+    fetchData(url);
+    setImg(img);
+  }, [searchQuery, selectedOption]);
+  
+  const handleSelectChange = (event) => {
+    const value = event.target.value;
+    setSelectedOption(value);
+    setSearchQuery("");
+  
+    let url;
+    let img;
+  
+    if (value === "scopus") {
+      url = `${baseURL}Scoupus/`;
+      img = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Scopus_logo.svg/2560px-Scopus_logo.svg.png";
+    } else {
+      url = `${baseURL}/author/`;
+      img = "https://upload.wikimedia.org/wikipedia/commons/2/28/Google_Scholar_logo.png?20190206225436";
+    }
+  
+    fetchData(url);
+    setImg(img);
+  };
+  
   return (
-    <div>
-      <Head />
-      <Container sx={{ py: 8 }} maxWidth="md">
-        <Grid container spacing={4}>
-          {posts.map((post, index) => (
-            <Grid item key={index} xs={12} sm={6} md={4}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardMedia
-                  component="img"
-                  sx={{ pt: '56.25%', padding: '0' }}
-                  image={post.image}
-                  alt={post.authurName}
+    <Container
+      maxWidth="xl"
+      sx={{ paddingTop: "3rem" }}
+      style={{ marginTop: "65px" }}
+    >
+      <div
+        className="shadow p-3 mb-5 bg-white rounded"
+        style={{ width: "100%", minHeight: "365px" }}
+      >
+        <div className="row">
+          <div className="col-sm col-md col-lg col-xl">
+            <Typography variant="h4" className="color-blue pb-3">
+              Search Researcher
+            </Typography>
+            <TextField
+              variant="outlined"
+              label="Enter researcher name"
+              fullWidth
+              sx={{ maxWidth: "85%", height: "auto" }}
+              value={searchQuery}
+              onChange={handleChange}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    type="submit"
+                    sx={{ p: "10px" }}
+                    aria-label="search"
+                  >
+                    <SearchIcon />
+                  </IconButton>
+                ),
+              }}
+            />
+          </div>
+
+          <div className="col-sm col-md col-lg col-xl p-2 mt-2">
+            <div className="form-group row ml-5">
+              <span className="color-blue ubuntu pb-2">Select Source</span>
+              <select
+                className="form-select"
+                style={{ maxWidth: "50%", height: "auto" }}
+                value={selectedOption}
+                onChange={handleSelectChange}
+              >
+                <option value="scholar">Google Scholar</option>
+                <option value="scopus">Scopus</option>
+              </select>
+            </div>
+            <div className="row">
+              <div className="p-2 mt-1 col">
+                <h5 className="color-blue ubuntu">{postsLength} Researchers</h5>
+              </div>
+              <div className="p-2 col">
+                <img
+                  src={img}
+                  alt="source" 
+                  style={{ maxWidth: "85%", minWidth: "65%", height: "auto" }}
                 />
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography gutterBottom variant="h5" component="h2">
-                    {post.authorName}
-                  </Typography>
-                  <Typography>
-                    {post.department}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <Button size="small">View</Button>
-                  <Button size="small">Edit</Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="row"></div>
+        {postsLength === 0 ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "50vh",
+            }}
+          >
+            <p className="font color-blue not-found ubutu">
+              Not Found Researcher
+            </p>
+          </div>
+        ) : (
+          <>
+            {isLoading ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "100vh",
+                }}
+              >
+                <div className="loader">
+                  <div></div>
+                  <div></div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="row">
+                  {posts.map((post) =>
+                    selectedOption === "scopus" ? (
+                      <ScopusCard key={post.id} post={post} />
+                    ) : (
+                      <GoogleScholarCard key={post.id} post={post} />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Container>
   );
 }
+
+export default Home;
